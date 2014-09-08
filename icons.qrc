@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/open.png</file>
+        <file>icons/close.png</file>
+        <file>icons/selectArea.png</file>
+        <file>icons/window.png</file>
+        <file>icons/cancelArea.png</file>
+        <file>icons/Splash.png</file>
+    </qresource>
+</RCC>
