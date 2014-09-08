@@ -7,27 +7,16 @@ DESTDIR = .
 DESTDIR_TARGET = .
 DEPENDPATH += .
 INCLUDEPATH += .
-unix { 
-    DEPENDPATH += /usr/local/dcmtk/include
-    INCLUDEPATH += /usr/local/dcmtk/include
-    LIBS += -lz \
-        -lpthread \
-        -L/usr/local/dcmtk/lib/ \
-        -ldcmimgle \
-        -ldcmdata \
-        -lofstd
-}
-win32 { 
-    DEPENDPATH += "C:/Program Files/DCMTK/include"
-    INCLUDEPATH += "C:/Program Files/DCMTK/include"
-    LIBS += -lz \
-        -lpthread \
-        -l"C:/DCMTK/include" \
-        -ldcmimgle \
-        -ldcmdata \
-        -lofstd
-}
-
+#unix {
+#    DEPENDPATH +=
+#    INCLUDEPATH +=
+#    LIBS +=
+#}
+#win32 {
+#    DEPENDPATH +=
+#    INCLUDEPATH +=
+#    LIBS +=
+#}
 # Input
 HEADERS += FilePGM.h \
     ImageViewer.h
