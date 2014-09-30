@@ -5,6 +5,6 @@
         <file>icons/selectArea.png</file>
         <file>icons/window.png</file>
         <file>icons/cancelArea.png</file>
-        <file>icons/Splash.png</file>
+        <file>icons/splash.png</file>
     </qresource>
 </RCC>
