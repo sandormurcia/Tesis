@@ -1,0 +1,4 @@
+cache/*
+repo/*
+.gitignore
+src.pro.user
