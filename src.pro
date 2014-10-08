@@ -26,14 +26,17 @@ HEADERS += \
 #   include/FilePGM.h \
 #   include/MainWindow.h \
     include/MainWindow.h \
-    include/BaseStatisticalFilter.h \
     include/HomogeneizeFilter.h \
-    include/PNGFile.h
+    include/PNGFile.h \
+    include/ContrastFilter.h \
+    include/DissimilarityFilter.h \
+    include/GLCMMediaFilter.h \
+    include/StandartDeviationFilter.h \
+    include/CorrelationFilter.h
 SOURCES += \
 #    src/FilePGM.cpp \
 #    src/MainWindow.cpp \
     src/main.cpp \
     src/MainWindow.cpp \
-    src/HomogeneizeFilter.cpp \
     src/PNGFile.cpp
 RESOURCES += icons.qrc

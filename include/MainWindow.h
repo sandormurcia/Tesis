@@ -61,8 +61,8 @@ private:
   void searchInRepository();
   void searchEpsilonInRepository();
 
-  QLabel *imageLabel;
-  QLabel *reposLabel;
+  QLabel *referenceLabel;
+  QLabel *repositoryLabel;
   QScrollArea *scrollArea;
   QScrollArea *reposArea;
   QToolBar *mainToolBar;
@@ -74,8 +74,8 @@ private:
   QStringList elements;
   QStringList matches;
 
-  QGroupBox *direcciones;
-  QGroupBox *filtros;
+  QGroupBox *directions;
+  QGroupBox *filtersGroup;
   QList<QCheckBox *> optionFilter;
   QComboBox *optionDir;
   QComboBox *optionWSize;
@@ -98,8 +98,7 @@ private:
   QPoint startDrag;
   QPoint endDrag;
 
-  PNGFile *actualPNG;
-  PNGFile *file_;
+  PNGFile *referenceImage;
   bool dragging;
 };
 

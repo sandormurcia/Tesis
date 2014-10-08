@@ -1,20 +1,20 @@
-#ifndef HOMOGENEIZEFILTER_H
-#define HOMOGENEIZEFILTER_H
+#ifndef GLCMMEDIAFILTER_H
+#define GLCMMEDIAFILTER_H
 
 #include <qmath.h>
 
-class HomogeneizeFilter
+class GLCMMediaFilter
 {
   public:
     static double apply(double ***m, int d, int intensity) {
       double result = 0;
       for (int i = 0; i < intensity; i++) {
         for (int j = 0; j < intensity; j++) {
-          result += m[d][i][j]/(1.0 + pow(((double)(i - j)), 2.0));
+          result = result + m[d][i][j] * i;
         }
       }
       return result;
     }
 };
 
-#endif // HOMOGENEIZEFILTER_H
+#endif // GLCMMEDIAFILTER_H

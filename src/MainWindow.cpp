@@ -18,23 +18,23 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
   this->values[8] = 7;
   qDebug() << values;
 
-  imageLabel   = new QLabel;
-  reposLabel = new QLabel;
+  referenceLabel   = new QLabel;
+  repositoryLabel = new QLabel;
   QLabel *nLabel = new QLabel();
   nLabel->setMinimumSize (205,1);
 
-  imageLabel->setBackgroundRole(QPalette::Base);
-  imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-  imageLabel->setScaledContents(true);
+  referenceLabel->setBackgroundRole(QPalette::Base);
+  referenceLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+  referenceLabel->setScaledContents(true);
 
-  reposLabel->setBackgroundRole(QPalette::Base);
-  reposLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-  reposLabel->setScaledContents(false);
+  repositoryLabel->setBackgroundRole(QPalette::Base);
+  repositoryLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+  repositoryLabel->setScaledContents(false);
 
   reposArea = new QScrollArea;
   reposArea->setBackgroundRole(QPalette::Dark);
   reposArea->setMinimumWidth(600);
-  reposArea->setWidget(reposLabel);
+  reposArea->setWidget(repositoryLabel);
   reposArea->setVisible(false);
 
   repositoryViewer = new QDockWidget("Imagen seleccionada");
@@ -47,7 +47,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
   scrollArea = new QScrollArea;
   scrollArea->setBackgroundRole(QPalette::Dark);
   scrollArea->setMinimumWidth(600);
-  scrollArea->setWidget(imageLabel);
+  scrollArea->setWidget(referenceLabel);
   scrollArea->setVisible(false);
 
   QVBoxLayout *mainGrid = new QVBoxLayout();
@@ -74,8 +74,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     mainGrid->addWidget (optionFilter.at(f));
   }
 
-  filtros = new QGroupBox(tr("Direccion, Ventana y Filtro"));
-  filtros->setLayout (mainGrid);
+  filtersGroup = new QGroupBox(tr("Direccion, Ventana y Filtro"));
+  filtersGroup->setLayout (mainGrid);
 
   filtersPanel = new QDockWidget("Filtros");
   filtersPanel->setFeatures(QDockWidget::NoDockWidgetFeatures);
@@ -100,7 +100,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
   resultPanel->setWidget(resultList);
   resultPanel->setFeatures(QDockWidget::NoDockWidgetFeatures);
 
-  filtersPanel->setWidget(filtros);
+  filtersPanel->setWidget(filtersGroup);
 
   createActions();
   createMenus();
@@ -131,16 +131,16 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
 void MainWindow::open()
 {
-  QString fileName = QFileDialog::getOpenFileName(this, tr("Abrir archivo"), "../", tr("Imagenes PNG (*.png)"));
+  QString fileName = QFileDialog::getOpenFileName(this, tr("Abrir archivo"), "../repo/", tr("Imagenes medicas (*.png *.pgm)"));
   if (!fileName.isEmpty() && imageLoaded.load(fileName)) {
     string filePath = fileName.toUtf8().constData();
-    actualPNG = new PNGFile(filePath);
-    imageLabel->clear();
+    referenceImage = new PNGFile(filePath);
+    referenceLabel->clear();
     setCursor(Qt::ArrowCursor);
-    imageLabel->installEventFilter(this);
+    referenceLabel->installEventFilter(this);
     imageLoaded = imageLoaded.convertToFormat(QImage::Format_RGB16, Qt::AutoColor);
-    imageLabel->setPixmap(QPixmap::fromImage(imageLoaded));
-    imageLabel->adjustSize();
+    referenceLabel->setPixmap(QPixmap::fromImage(imageLoaded));
+    referenceLabel->adjustSize();
     scrollArea->setVisible(true);
     updateActions();
     statusBar()->showMessage(tr("Imagen cargada con exito"));
@@ -153,14 +153,14 @@ void MainWindow::open()
 
 void MainWindow::closeFile()
 {
-  imageLabel->setText(tr(""));
+  referenceLabel->setText(tr(""));
   scrollArea->setVisible(false);
-  imageLabel->clear();
-  imageLabel->adjustSize();
+  referenceLabel->clear();
+  referenceLabel->adjustSize();
   updateActions();
   resultPanel->close();
   filtersPanel->close();
-  filtros->close();
+  filtersGroup->close();
   startDrag = QPoint(0,0);
   endDrag = QPoint(0,0);
 }
@@ -172,7 +172,7 @@ void MainWindow::selectArea()
 
 void MainWindow::cancelSelection()
 {
-  imageLabel->setPixmap(QPixmap::fromImage(imageLoaded));
+  referenceLabel->setPixmap(QPixmap::fromImage(imageLoaded));
   startDrag = QPoint(0,0);
   endDrag = QPoint(0,0);
   procArea->setEnabled(false);
@@ -192,13 +192,13 @@ void MainWindow::cancelSelection(bool option)
   msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
   switch (msgBox.exec()) {
     case QMessageBox::Yes:
-      imageLabel->setPixmap(QPixmap::fromImage(imageLoaded));
+      referenceLabel->setPixmap(QPixmap::fromImage(imageLoaded));
       startDrag = QPoint(0,0);
       endDrag = QPoint(0,0);
       procArea->setEnabled(false);
       cancArea->setEnabled(false);
       filtersPanel->close();
-      filtros->hide();
+      filtersGroup->hide();
       resultPanel->close();
       break;
     case QMessageBox::No:
@@ -216,13 +216,13 @@ void MainWindow::about()
 bool MainWindow::eventFilter(QObject *object, QEvent *event)
 {
   // Eventos para el Contenedor de la Imagen
-  if (object == imageLabel) {
+  if (object == referenceLabel) {
     QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
     // Click Izquierdo
     if (event->type() == QEvent::MouseButtonPress && mouseEvent->button() == Qt::LeftButton) {
       startDrag = QPoint(0,0);
       endDrag   = QPoint(0,0);
-      imageLabel->setPixmap(QPixmap::fromImage(imageLoaded));
+      referenceLabel->setPixmap(QPixmap::fromImage(imageLoaded));
       startDrag = mouseEvent->pos();
       dragging = true;
       return true;
@@ -249,10 +249,10 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
 
       filtersPanel->show();
       resultPanel->show();
-      filtersPanel->setWidget(filtros);
-      filtros->show();
+      filtersPanel->setWidget(filtersGroup);
+      filtersGroup->show();
 
-      int allowedSizes[] = {50, 100, 150, 200, 300, 400, 500};
+      int allowedSizes[] = {12, 50, 100, 150, 200, 300, 400, 500};
 
       int widthSel = endDrag.x() - startDrag.x();
       int heightSel = endDrag.y() - startDrag.y();
@@ -260,7 +260,7 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
 
       maxFromSel = (maxFromSel > 500) ? 500 : maxFromSel;
 
-      for (int i = 6; i >= 0; i--) {
+      for (int i = 7; i >= 0; i--) {
         if ((allowedSizes[i] - qMax(widthSel, heightSel)) < 0) break;
         maxFromSel = allowedSizes[i];
       }
@@ -284,7 +284,7 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
       painter.setBrush(QBrush(QColor(106,230,147)));
       painter.setOpacity(0.3);
       painter.drawRect(selection);
-      imageLabel->setPixmap(tmpPix);
+      referenceLabel->setPixmap(tmpPix);
       painter.end();
 
       painter.begin(&preview);
@@ -295,7 +295,7 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
       painter.drawText(20,20,optionWSize->currentText());
       painter.end();
 
-      this->actualPNG->makeSelection(startDrag.x(), startDrag.y(), endDrag.x(), endDrag.y());
+      this->referenceImage->makeSelection(startDrag.x(), startDrag.y(), endDrag.x(), endDrag.y());
       statusBar()->showMessage("Seleccionado: "+QString::number(maxFromSel)+" x "+QString::number(maxFromSel));
       dragging = false;
 
@@ -313,10 +313,10 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
       painter.setBrush(QBrush(QColor(106,230,147)));
       painter.setOpacity(0.3);
       painter.drawRect(selection);
-      imageLabel->setPixmap(tmpPix);
+      referenceLabel->setPixmap(tmpPix);
       painter.end();
 
-      tmpPix = QPixmap(*imageLabel->pixmap());
+      tmpPix = QPixmap(*referenceLabel->pixmap());
 
       painter.begin(&tmpPix);
 
@@ -326,7 +326,7 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
       painter.setPen(QPen(QColor(0,0,255), 1, Qt::DotLine, Qt::RoundCap, Qt::RoundJoin));
       painter.drawLine(startDrag.x(), 0, startDrag.x(), imageLoaded.height());
       painter.drawLine(0, startDrag.y(), imageLoaded.width(), startDrag.y());
-      imageLabel->setPixmap(tmpPix);
+      referenceLabel->setPixmap(tmpPix);
 
       restrictPoints();
       selectArea();
@@ -344,10 +344,10 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
         painter.setBrush(QBrush(QColor(106,230,147)));
         painter.setOpacity(0.3);
         painter.drawRect(selection);
-        imageLabel->setPixmap(tmpPix);
+        referenceLabel->setPixmap(tmpPix);
         painter.end();
 
-        tmpPix = QPixmap(*imageLabel->pixmap());
+        tmpPix = QPixmap(*referenceLabel->pixmap());
 
         painter.begin(&tmpPix);
 
@@ -355,14 +355,14 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
         painter.setBrush(QBrush(QColor(255,0,0)));
         painter.drawLine(0, mouseEvent->pos().x(), imageLoaded.width(), mouseEvent->pos().x());
         painter.drawLine(mouseEvent->pos().y(), 0, mouseEvent->pos().y(),imageLoaded.height());
-        imageLabel->setPixmap(tmpPix);
+        referenceLabel->setPixmap(tmpPix);
 
         statusBar()->showMessage(QString::number(mouseEvent->pos().x())+" , "+QString::number(mouseEvent->pos().y()));
       }
       return true;
     }
   }
-  if (object == reposLabel) {
+  if (object == repositoryLabel) {
   }
   return false;
 }
@@ -403,27 +403,27 @@ void MainWindow::createActions()
 }
 
 void MainWindow::changeFilterValues (int index) {
-  this->actualPNG->actualFilter = index;
+  this->referenceImage->actualFilter = index;
 }
 
 void MainWindow::openRepositoryImage(QTreeWidgetItem *item, int column)
 {
-  this->reposLabel->clear();
+  this->repositoryLabel->clear();
   QImage tmpPreview = QImage(QString("../repo/").append(item->text(0)));
   setCursor(Qt::ArrowCursor);
-  this->reposLabel->installEventFilter(this);
+  this->repositoryLabel->installEventFilter(this);
 
   QPixmap tmpPix(QPixmap::fromImage(tmpPreview));
-  QRectF selection(item->text(2).toInt(), item->text(3).toInt(), this->actualPNG->selWidth, this->actualPNG->selHeight);
+  QRectF selection(item->text(2).toInt(), item->text(3).toInt(), this->referenceImage->selWidth, this->referenceImage->selHeight);
 
   QPainter painter(&tmpPix);
   painter.setPen(QPen(QColor(106,230,147), 1, Qt::DashDotLine, Qt::RoundCap, Qt::RoundJoin));
   painter.setOpacity(0.5);
   painter.drawRect(selection);
-  this->reposLabel->setPixmap(tmpPix);
+  this->repositoryLabel->setPixmap(tmpPix);
   painter.end();
 
-  this->reposLabel->adjustSize();
+  this->repositoryLabel->adjustSize();
 
   this->repositoryViewer->show();
   this->repositoryViewer->setWindowTitle(item->text(0).append(" con ").append(item->text(1).append("% de Diferencia de la muestra")));
@@ -481,10 +481,12 @@ void MainWindow::updateActions()
 
 void MainWindow::restrictPoints()
 {
-  if (endDrag.x() < 0) endDrag = QPoint(0,endDrag.y());
-  if (endDrag.y() < 0) endDrag = QPoint(endDrag.x(),0);
+  if (endDrag.x() < 0) endDrag = QPoint(0, endDrag.y());
+  if (endDrag.y() < 0) endDrag = QPoint(endDrag.x(), 0);
   if (endDrag.x() > imageLoaded.width()) endDrag = QPoint(imageLoaded.width(),endDrag.y());
   if (endDrag.y() > imageLoaded.height()) endDrag = QPoint(endDrag.x(), imageLoaded.height());
+  if (startDrag.x() < 0) startDrag = QPoint(0, startDrag.y());
+  if (startDrag.y() < 0) startDrag = QPoint(startDrag.x(), 0);
 }
 
 void MainWindow::processArea()
@@ -497,34 +499,44 @@ void MainWindow::processArea()
   else
     maxWindowSize = minimum;
 
-  if ((((endDrag.x()-startDrag.x()) * (endDrag.y()-startDrag.y())) < 400) || maxWindowSize < 3) {
+  if ((((endDrag.x()-startDrag.x()) * (endDrag.y()-startDrag.y())) < 144) || maxWindowSize < 3) {
     QMessageBox::warning(this, tr("No se puede procesar el area de seleccion"),tr("El area de seleccion actual es demasiado pequena para ser procesada.\nIntente con una un poco mas grande."),QMessageBox::Ok);
     return;
   }
-  actualPNG->actualDirection = optionDir->currentIndex();
-  actualPNG->windowSize = (2 * optionWSize->currentIndex()) + 3;
+  qDebug() << optionWSize->currentIndex();
+  referenceImage->actualDirection = optionDir->currentIndex();
+  referenceImage->windowSize = (2 * optionWSize->currentIndex()) + 3;
 
-  double epsilon = 0.0;
+  double epsilon[referenceImage->badgeSize];
+  for(int b = 0; b < referenceImage->badgeSize; b++) {
+    epsilon[b] = 0.0;
+  }
   int checked = 0;
 
-  if (actualPNG->windowSize<=maxWindowSize) {
+  if (referenceImage->windowSize<=maxWindowSize) {
     for (int f = 0; f < filtrosT.size(); f++)
       if (optionFilter.at(f)->isChecked() == true) checked++;
 
     for (int f = 0; f < filtrosT.size(); f++) {
       if (optionFilter.at(f)->isChecked()) {
-        actualPNG->actualFilter = f;
-        actualPNG->applyFilter();
-        if (checked > 1)
-          epsilon += pow(actualPNG->filterValue,2.0);
-        else if (checked > 0)
-          epsilon += actualPNG->filterValue;
+        referenceImage->actualFilter = f;
+        referenceImage->applyFilter();
+        for(int b = 0; b < referenceImage->badgeSize; b++) {
+          if (checked > 1)
+            epsilon[b] += pow(referenceImage->filterValue[b][f], 2.0);
+          else if (checked > 0)
+            epsilon[b] += referenceImage->filterValue[b][f];
+        }
       }
     }
-    if (checked > 1)
-      actualPNG->filterValue = sqrt(epsilon);
-    else if (checked > 0)
-      actualPNG->filterValue = epsilon;
+    for (int f = 0; f < filtrosT.size(); f++) {
+      for(int b = 0; b < referenceImage->badgeSize; b++) {
+        if (checked > 1)
+          epsilon[b] += sqrt(referenceImage->filterValue[b][f]);
+        else if (checked > 0)
+          epsilon[b] += referenceImage->filterValue[b][f];
+      }
+    }
 
     this->searchInRepository();
   } else
@@ -534,6 +546,7 @@ void MainWindow::processArea()
 
 void MainWindow::searchInRepository()
 {
+  /*
   QDir *dir = new QDir("./Repositorio");
 
   dir->setFilter(QDir::Files | QDir::NoSymLinks);
@@ -560,45 +573,45 @@ void MainWindow::searchInRepository()
     QString fileName = fileInfo->absolutePath().append("/").append(fileInfo->fileName());
     result->clear();
     string filePath = fileName.toUtf8().constData();
-    file_ = new PNGFile(filePath);
-    int i = (file_->width - actualPNG->selWidth) - 1;
+    PNGFile *repositoryImage = new PNGFile(filePath);
+    int i = (repositoryImage->width - referenceImage->selWidth) - 1;
     do {
-      int j = (file_->height - actualPNG->selHeight) - 1;
+      int j = (repositoryImage->height - referenceImage->selHeight) - 1;
       do {
         double epsilon = 0.0;
-        file_->actualDirection = optionDir->currentIndex();
-        file_->windowSize = (2 * optionWSize->currentIndex()) + 3;
-        file_->makeSelection(i, j, (i + actualPNG->selWidth), (j + actualPNG->selHeight));
+        repositoryImage->actualDirection = optionDir->currentIndex();
+        repositoryImage->windowSize = (2 * optionWSize->currentIndex()) + 3;
+        repositoryImage->makeSelection(i, j, (i + referenceImage->selWidth), (j + referenceImage->selHeight));
 
         // Reemplazo file_->applyFilter();
         for (int f = 0; f < filtrosT.size(); f++) {
           if (optionFilter.at(f)->isChecked() == true) {
-            file_->actualFilter = f;
-            file_->applyFilter();
+            repositoryImage->actualFilter = f;
+            repositoryImage->applyFilter();
             if (checked > 1)
-              epsilon += pow(file_->filterValue,2.0);
+              epsilon += pow(repositoryImage->filterValue,2.0);
             else if (checked > 0)
-              epsilon += file_->filterValue;
+              epsilon += repositoryImage->filterValue;
           }
         }
         if (checked > 1)
-          file_->filterValue = sqrt(epsilon);
+          repositoryImage->filterValue = sqrt(epsilon);
         else if (checked > 0)
-          file_->filterValue = epsilon;
+          repositoryImage->filterValue = epsilon;
 
-        if (absDiff[image] > fabs(actualPNG->filterValue - file_->filterValue)) {
-          absDiff[image] = fabs(actualPNG->filterValue - file_->filterValue);
+        if (absDiff[image] > fabs(referenceImage->filterValue - repositoryImage->filterValue)) {
+          absDiff[image] = fabs(referenceImage->filterValue - repositoryImage->filterValue);
           coordinates->clear();
           coordinates->operator <<(QString::number(i));
           coordinates->operator <<(QString::number(j));
-          coordinates->operator <<(QString::number(i + actualPNG->selWidth));
-          coordinates->operator <<(QString::number(j + actualPNG->selHeight));
+          coordinates->operator <<(QString::number(i + referenceImage->selWidth));
+          coordinates->operator <<(QString::number(j + referenceImage->selHeight));
         }
         j--;
       } while (j >= 0);
       i--;
     } while (i >= 0);
-    double percent = double(round(double(absDiff[image] * 100 / actualPNG->filterValue) * 100) / 100);
+    double percent = double(round(double(absDiff[image] * 100 / referenceImage->filterValue) * 100) / 100);
     QBrush bgcolor = QBrush(Qt::green);
     QString per_ = QString::number(percent);
     if (percent > 2.0) bgcolor = QBrush(Qt::red);
@@ -611,13 +624,14 @@ void MainWindow::searchInRepository()
     QTreeWidgetItem *item = new QTreeWidgetItem(*result);
     item->setForeground(1,bgcolor);
     items.append(item);
-    qDebug() << fileInfo->fileName().toLocal8Bit().data() << actualPNG->filterValue << file_->filterValue << absDiff[image];
-    file_->PNGFile::~PNGFile();
+    qDebug() << fileInfo->fileName().toLocal8Bit().data() << referenceImage->filterValue << repositoryImage->filterValue << absDiff[image];
+    repositoryImage->PNGFile::~PNGFile();
   }
 
   resultList->clear();
   resultList->insertTopLevelItems(0, items);
   resultList->sortByColumn(1,Qt::AscendingOrder);
 
-  resultPanel->setWindowTitle(QString("Filtro Referencia: "+QString::number(actualPNG->filterValue)).toLocal8Bit().data());
+  resultPanel->setWindowTitle(QString("Filtro Referencia: "+QString::number(referenceImage->filterValue)).toLocal8Bit().data());
+  */
 }
