@@ -409,7 +409,6 @@ void MainWindow::createActions()
 }
 
 void MainWindow::changeFilterValues (int index) {
-  this->referenceImage->actualFilter = index;
 }
 
 void MainWindow::changeFilterValuesWithRecalculation (int index) {
@@ -521,48 +520,32 @@ void MainWindow::processArea()
   this->referenceImage->actualDirection = optionDir->currentIndex();
   this->referenceImage->windowSize = (2 * optionWSize->currentIndex()) + 3;
 
-  double epsilon[this->referenceImage->badgeSize];
-  for(int b = 0; b < this->referenceImage->badgeSize; b++) {
-    epsilon[b] = 0.0;
-  }
-  int checked = 0;
+  double epsilon[filtrosT.size()];
+  for (int f = 0; f < filtrosT.size(); f++)
+    epsilon[f] = 0;
 
+  int checked = 0;
   if (this->referenceImage->windowSize<=maxWindowSize) {
     for (int f = 0; f < filtrosT.size(); f++)
       if (optionFilter.at(f)->isChecked() == true) checked++;
 
-    for (int f = 0; f < filtrosT.size(); f++) {
-      if (optionFilter.at(f)->isChecked()) {
-        this->referenceImage->actualFilter = f;
-        this->referenceImage->applyFilter();
-        for(int b = 0; b < this->referenceImage->badgeSize; b++) {
-          qDebug() << filtrosT.at (f) << " en posicion de conjunto " << (b + 1) << this->referenceImage->filterValue[b][f];
-          if (checked > 1)
-            epsilon[b] += pow(this->referenceImage->filterValue[b][f], 2.0);
-          else if (checked > 0)
-            epsilon[b] += this->referenceImage->filterValue[b][f];
+    for(int b = 0; b < this->referenceImage->badgeSize; b++) {
+      for (int f = 0; f < filtrosT.size(); f++) {
+        if (optionFilter.at(f)->isChecked()) {
+          this->referenceImage->applyFilter(f);
+          epsilon[f] += (this->referenceImage->filterValue[b][f] / this->referenceImage->badgeSize);
         }
       }
     }
-    for (int f = 0; f < filtrosT.size(); f++) {
-      for(int b = 0; b < this->referenceImage->badgeSize; b++) {
-        if (checked > 1)
-          epsilon[b] += sqrt(this->referenceImage->filterValue[b][f]);
-        else if (checked > 0)
-          epsilon[b] += this->referenceImage->filterValue[b][f];
-      }
-    }
-
-    this->searchInRepository();
+    this->searchInRepository(epsilon);
   } else
     QMessageBox::warning(this, tr("No se puede procesar el area de seleccion"),tr("Las dimensiones de la ventana sobrepasan el limite del area de seleccion.\nIntente con una ventana inferior o igual a ").append(QString::number(maxWindowSize)).append("x").append(QString::number(maxWindowSize)),QMessageBox::Ok);
   return;
 }
 
-void MainWindow::searchInRepository()
+void MainWindow::searchInRepository(double *referenceValues)
 {
-  /*
-  QDir *dir = new QDir("./Repositorio");
+  QDir *dir = new QDir("../repo");
 
   dir->setFilter(QDir::Files | QDir::NoSymLinks);
   dir->setSorting(QDir::Size | QDir::Reversed);
@@ -571,65 +554,76 @@ void MainWindow::searchInRepository()
   nameFilter->operator <<("*.png");
 
   QFileInfoList list = dir->entryInfoList(*nameFilter, QDir::Files, QDir::Type|QDir::Name);
-  double *absDiff = new double[list.size()];
+  double *absoluteSimilarity = new double[list.size()];
   QStringList *coordinates = new QStringList;
   QStringList *result = new QStringList;
   items.clear();
 
   for (int x = 0; x < list.size(); ++x)
-    absDiff[x] = 999999;
+    absoluteSimilarity[x] = 0;
 
   int checked = 0;
+  double epsilon[filtrosT.size()], percent = 0;
   for (int f = 0; f < filtrosT.size(); f++)
     if (optionFilter.at(f)->isChecked() == true) checked++;
 
+  double absoluteReference = 0;
+  for(int b = 0; b < this->referenceImage->badgeSize; b++) {
+    for (int f = 0; f < filtrosT.size(); f++) {
+      if (optionFilter.at(f)->isChecked()) {
+        absoluteReference += (referenceValues[f] / checked);
+      }
+    }
+  }
+
+  PNGFile *repositoryImage;
   for (int image = 0; image < list.size(); ++image) {
     QFileInfo *fileInfo = new QFileInfo(list.at(image));
     QString fileName = fileInfo->absolutePath().append("/").append(fileInfo->fileName());
     result->clear();
     string filePath = fileName.toUtf8().constData();
-    PNGFile *repositoryImage = new PNGFile(filePath);
+    repositoryImage = new PNGFile(filePath);
     int i = (repositoryImage->width - this->referenceImage->selWidth) - 1;
     do {
       int j = (repositoryImage->height - this->referenceImage->selHeight) - 1;
       do {
-        double epsilon = 0.0;
+        for (int f = 0; f < filtrosT.size(); f++)
+          epsilon[f] = 0;
+
         repositoryImage->actualDirection = optionDir->currentIndex();
         repositoryImage->windowSize = (2 * optionWSize->currentIndex()) + 3;
+        repositoryImage->badgeSize = this->referenceImage->badgeSize;
         repositoryImage->makeSelection(i, j, (i + this->referenceImage->selWidth), (j + this->referenceImage->selHeight));
 
         // Reemplazo file_->applyFilter();
-        for (int f = 0; f < filtrosT.size(); f++) {
-          if (optionFilter.at(f)->isChecked() == true) {
-            repositoryImage->actualFilter = f;
-            repositoryImage->applyFilter();
-            if (checked > 1)
-              epsilon += pow(repositoryImage->filterValue,2.0);
-            else if (checked > 0)
-              epsilon += repositoryImage->filterValue;
+        for(int b = 0; b < repositoryImage->badgeSize; b++) {
+          for (int f = 0; f < filtrosT.size(); f++) {
+            if (optionFilter.at(f)->isChecked() == true) {
+              repositoryImage->applyFilter(f);
+              epsilon[f] += (repositoryImage->filterValue[b][f] / repositoryImage->badgeSize);
+            }
           }
         }
-        if (checked > 1)
-          repositoryImage->filterValue = sqrt(epsilon);
-        else if (checked > 0)
-          repositoryImage->filterValue = epsilon;
 
-        if (absDiff[image] > fabs(this->referenceImage->filterValue - repositoryImage->filterValue)) {
-          absDiff[image] = fabs(this->referenceImage->filterValue - repositoryImage->filterValue);
-          coordinates->clear();
-          coordinates->operator <<(QString::number(i));
-          coordinates->operator <<(QString::number(j));
-          coordinates->operator <<(QString::number(i + this->referenceImage->selWidth));
-          coordinates->operator <<(QString::number(j + this->referenceImage->selHeight));
+        for(int b = 0; b < repositoryImage->badgeSize; b++) {
+          for (int f = 0; f < filtrosT.size(); f++) {
+            if (optionFilter.at(f)->isChecked() == true) {
+              absoluteSimilarity[image] += (epsilon[f] / checked);
+            }
+          }
         }
+        coordinates->clear();
+        coordinates->operator <<(QString::number(i));
+        coordinates->operator <<(QString::number(j));
+        coordinates->operator <<(QString::number(i + this->referenceImage->selWidth));
+        coordinates->operator <<(QString::number(j + this->referenceImage->selHeight));
         j--;
       } while (j >= 0);
       i--;
     } while (i >= 0);
-    double percent = double(round(double(absDiff[image] * 100 / this->referenceImage->filterValue) * 100) / 100);
     QBrush bgcolor = QBrush(Qt::green);
-    QString per_ = QString::number(percent);
-    if (percent > 2.0) bgcolor = QBrush(Qt::red);
+    QString per_ = QString::number(double(round(absoluteSimilarity[image] * 100)) / 100);
+    if (percent > 80) bgcolor = QBrush(Qt::red);
     result->operator <<(fileInfo->fileName());
     result->operator <<(per_);
     result->operator <<(coordinates->at(0));
@@ -639,14 +633,10 @@ void MainWindow::searchInRepository()
     QTreeWidgetItem *item = new QTreeWidgetItem(*result);
     item->setForeground(1,bgcolor);
     items.append(item);
-    qDebug() << fileInfo->fileName().toLocal8Bit().data() << this->referenceImage->filterValue << repositoryImage->filterValue << absDiff[image];
     repositoryImage->PNGFile::~PNGFile();
   }
 
   resultList->clear();
   resultList->insertTopLevelItems(0, items);
   resultList->sortByColumn(1,Qt::AscendingOrder);
-
-  resultPanel->setWindowTitle(QString("Filtro Referencia: "+QString::number(this->referenceImage->filterValue)).toLocal8Bit().data());
-  */
 }

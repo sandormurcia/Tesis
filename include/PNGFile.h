@@ -51,7 +51,6 @@ class PNGFile
     int width;
     int height;
     int actualDirection;
-    int actualFilter;
     int pathType;
     int selWidth;
     int selHeight;
@@ -68,13 +67,14 @@ class PNGFile
     double **results;
 
     void makeSelection (int x, int y, int w, int h);
-    void applyFilter ();
+    void applyFilter (int actualFilter);
     void createMatrix (int w, int h, QFile *file);
     int *** calcCoocurrence (int x, int y, int w, int h);
     void calcNormalized (int ***coocurrencesMatrix, int b);
     void startDataPlaceholders ();
     void initNormalizationMatrix (int b);
     void initPixelsSelectionCount (int b);
+    void resetPixelsSelectionCount (int b);
     void deleteNormalizationMatrix (int b);
     void deletePixelsSelectionCount (int b);
 };

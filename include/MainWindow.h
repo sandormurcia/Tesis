@@ -59,7 +59,7 @@ private:
   void updateActions();
   void cancelSelection(bool option);
   void restrictPoints();
-  void searchInRepository();
+  void searchInRepository(double *referenceValues);
   void searchEpsilonInRepository();
 
   QLabel *referenceLabel;
