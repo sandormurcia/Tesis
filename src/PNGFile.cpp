@@ -111,7 +111,7 @@ void PNGFile::deletePixelsSelectionCount (int b) {
 }
 
 int *** PNGFile::calcCoocurrence(int x, int y, int w, int h) {
-  int direction[4][2] = {{1,0},{1,1},{0,1},{-1,1}};
+  int directions[4][2] = {{1,0},{1,1},{0,1},{-1,1}};
   int wSize = int(floor(this->windowSize / 2));
 
   int ***matrix = 0;
@@ -144,11 +144,12 @@ int *** PNGFile::calcCoocurrence(int x, int y, int w, int h) {
     for (int i = (x + wSize); i < ((x + w) - (wSize)); i++) {
       for (int j = (y + wSize); j < ((y + h) - (wSize)); j++) {
         int actual = this->dataMatrix[i][j];
-        near = this->dataMatrix[(i + (direction[d][0] * wSize))][(j + (direction[d][1] * wSize))];
+        near = this->dataMatrix[(i + (directions[d][0] * wSize))][(j + (directions[d][1] * wSize))];
         matrix[d][actual][near]++;
       }
     }
   }
+  qDebug() << this->dataMatrix[100][100];
 
   // Se traspone y se suma con las otras direcciones (180, 225, 270, 315)
 
@@ -171,7 +172,7 @@ int *** PNGFile::calcCoocurrence(int x, int y, int w, int h) {
 }
 
 void PNGFile::calcNormalized(int ***coocurrencesMatrix, int b) {
-  qDebug() << b;
+  this->initPixelsSelectionCount (b);
   // Conteo de píxeles
   for (int d = 0; d < 4; d++)
     for (int i = 0; i < this->intensity; i++)
@@ -185,6 +186,7 @@ void PNGFile::calcNormalized(int ***coocurrencesMatrix, int b) {
       }
     }
   }
+  qDebug() << "Exported normalized matrix";
   this->mayRecalculate = false;
   this->started = true;
 }
