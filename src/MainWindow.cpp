@@ -534,9 +534,9 @@ void MainWindow::processArea()
     for (int f = 0; f < filtrosT.size(); f++) {
       if (optionFilter.at(f)->isChecked()) {
         this->referenceImage->actualFilter = f;
-        qDebug() << "Aplicando " << filtrosT.at (f);
         this->referenceImage->applyFilter();
         for(int b = 0; b < this->referenceImage->badgeSize; b++) {
+          qDebug() << filtrosT.at (f) << " en posicion de conjunto " << (b + 1) << this->referenceImage->filterValue[b][f];
           if (checked > 1)
             epsilon[b] += pow(this->referenceImage->filterValue[b][f], 2.0);
           else if (checked > 0)

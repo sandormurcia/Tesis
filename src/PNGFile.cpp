@@ -60,7 +60,6 @@ void PNGFile::startDataPlaceholders () {
     this->initNormalizationMatrix(b);
   }
   this->mayRecalculate = true;
-  qDebug() << "Started data placeholders with" << this->badgeSize << "badges";
 }
 
 void PNGFile::initNormalizationMatrix (int b) {
@@ -167,7 +166,6 @@ int *** PNGFile::calcCoocurrence(int x, int y, int w, int h) {
     delete[] matrix;
     matrix = 0;
   }
-  qDebug() << "Exported coocurrencesMatrix";
   return coocurrencesMatrix;
 }
 
@@ -186,7 +184,6 @@ void PNGFile::calcNormalized(int ***coocurrencesMatrix, int b) {
       }
     }
   }
-  qDebug() << "Exported normalized matrix";
   this->mayRecalculate = false;
   this->started = true;
 }
@@ -233,7 +230,6 @@ void PNGFile::applyFilter () {
       this->filterValue[0][this->actualFilter] = UniformityFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
       break;
   }
-  qDebug() << this->filterValue[0][this->actualFilter];
 }
 
 PNGFile::~PNGFile() {
