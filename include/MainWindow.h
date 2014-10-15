@@ -45,6 +45,7 @@ private slots:
   void about();
   void openRepositoryImage(QTreeWidgetItem *item, int column);
   void changeFilterValues (int index);
+  void changeFilterValuesWithRecalculation (int index);
 
 protected:
   int values[9];
@@ -79,6 +80,7 @@ private:
   QList<QCheckBox *> optionFilter;
   QComboBox *optionDir;
   QComboBox *optionWSize;
+  QComboBox *optionPathType;
 
   QList<QTreeWidgetItem *> items;
 

@@ -19,6 +19,10 @@
 #include <include/DissimilarityFilter.h>
 #include <include/GLCMMediaFilter.h>
 #include <include/StandartDeviationFilter.h>
+#include <include/EntropyFilter.h>
+#include <include/CorrelationFilter.h>
+#include <include/ASMFilter.h>
+#include <include/UniformityFilter.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -52,14 +56,15 @@ class PNGFile
     int selWidth;
     int selHeight;
     int windowSize;
-    int **selPixelsCount;
+    int **pixelsSelectionCount;
     double **filterValue;
     bool mayRecalculate;
+    bool started;
 
     QPoint *corner;
 
     int **dataMatrix;
-    double ****normMatrix;
+    double ****normalizationMatrix;
     double **results;
 
     void makeSelection (int x, int y, int w, int h);
@@ -67,7 +72,11 @@ class PNGFile
     void createMatrix (int w, int h, QFile *file);
     int *** calcCoocurrence (int x, int y, int w, int h);
     void calcNormalized (int ***coocurrencesMatrix, int b);
-    void cleanNormalizationData (int b);
+    void startDataPlaceholders ();
+    void initNormalizationMatrix (int b);
+    void initPixelsSelectionCount (int b);
+    void deleteNormalizationMatrix (int b);
+    void deletePixelsSelectionCount (int b);
 };
 
 #endif

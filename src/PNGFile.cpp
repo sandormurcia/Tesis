@@ -35,54 +35,78 @@ PNGFile::PNGFile(string file) {
       this->dataMatrix[i][j] = (int)originalMatrix.data[(j * this->width * channels) + ((i * channels) + qMax(0, 1))];
   }
   this->mayRecalculate = true;
-  this->normMatrix = 0;
+  this->normalizationMatrix = 0;
   this->filterValue = 0;
   this->corner = new QPoint(0,0);
   this->actualDirection = 0;
   this->actualFilter = 0;
-  this->pathType = 0;
   this->windowSize = 3;
-  this->selPixelsCount = 0;
+  this->pixelsSelectionCount = 0;
   this->intensity = 256;
-  this->badgeSize = this->pathType == 0 ? 1 : 4;
+  this->badgeSize = 1;
+  this->started = false;
+}
 
-  this->selPixelsCount = new int*[this->badgeSize];
-  this->normMatrix = new double***[this->badgeSize];
+void PNGFile::startDataPlaceholders () {
+  this->pixelsSelectionCount = new int*[this->badgeSize];
+  this->normalizationMatrix = new double***[this->badgeSize];
   this->filterValue = new double*[this->badgeSize];
   for (int b = 0; b < this->badgeSize; b++) {
     this->filterValue[b] = new double[9];
     for (int i = 0; i < 9; i++) {
       this->filterValue[b][i] = -9999;
     }
-    this->cleanNormalizationData(b);
+    this->initPixelsSelectionCount (b);
+    this->initNormalizationMatrix(b);
+  }
+  this->mayRecalculate = true;
+  qDebug() << "Started data placeholders with" << this->badgeSize << "badges";
+}
+
+void PNGFile::initNormalizationMatrix (int b) {
+  this->normalizationMatrix[b] = 0;
+  this->normalizationMatrix[b] = new double **[4];
+  for (int d = 0; d < 4; d++) {
+    this->pixelsSelectionCount[b][d] = 0;
+    this->normalizationMatrix[b][d] = new double *[this->intensity];
+    for (int i = 0; i < this->intensity; i++) {
+      this->normalizationMatrix[b][d][i] = new double[intensity];
+      for (int j = 0; j < this->intensity; j++) {
+        this->normalizationMatrix[b][d][i][j] = 0;
+      }
+    }
   }
 }
 
-void PNGFile::cleanNormalizationData (int b) {
-  if (this->normMatrix[b] != 0) {
-    for (int d = 0; d < 4; d++) {
-      for (int i = 0; i < intensity; i++)
-        delete[] this->normMatrix[b][d][i];
-      delete[] this->normMatrix[b][d];
-    }
-    delete[] this->normMatrix[b];
-  }
-  if (this->selPixelsCount[b] != 0) {
-    delete[] this->selPixelsCount[b];
-  }
-  this->normMatrix[b] = 0;
-  this->selPixelsCount[b] = 0;
-  this->selPixelsCount[b] = new int[4];
-  this->normMatrix[b] = new double **[4];
+void PNGFile::initPixelsSelectionCount (int b) {
+  this->pixelsSelectionCount[b] = 0;
+  this->pixelsSelectionCount[b] = new int[4];
   for (int d = 0; d < 4; d++) {
-    this->selPixelsCount[b][d] = 0;
-    this->normMatrix[b][d] = new double *[this->intensity];
-    for (int i = 0; i < this->intensity; i++) {
-      this->normMatrix[b][d][i] = new double[intensity];
-      for (int j = 0; j < this->intensity; j++) {
-        this->normMatrix[b][d][i][j] = 0;
+    this->pixelsSelectionCount[b][d] = 0;
+  }
+}
+
+void PNGFile::deleteNormalizationMatrix (int b) {
+  try {
+    if (this->normalizationMatrix[b] != 0) {
+      for (int d = 0; d < 4; d++) {
+        for (int i = 0; i < intensity; i++) {
+          delete[] this->normalizationMatrix[b][d][i];
+        }
+        delete[] this->normalizationMatrix[b][d];
       }
+      delete[] this->normalizationMatrix[b];
     }
+  } catch (Exception e) {
+  }
+}
+
+void PNGFile::deletePixelsSelectionCount (int b) {
+  try {
+    if (this->pixelsSelectionCount[b] != 0) {
+      delete[] this->pixelsSelectionCount[b];
+    }
+  } catch (Exception e) {
   }
 }
 
@@ -142,27 +166,27 @@ int *** PNGFile::calcCoocurrence(int x, int y, int w, int h) {
     delete[] matrix;
     matrix = 0;
   }
+  qDebug() << "Exported coocurrencesMatrix";
   return coocurrencesMatrix;
 }
 
 void PNGFile::calcNormalized(int ***coocurrencesMatrix, int b) {
-  if (this->mayRecalculate) {
-    cleanNormalizationData(b);
-    // Conteo de píxeles
-    for (int d = 0; d < 4; d++)
-      for (int i = 0; i < this->intensity; i++)
-        for (int j = 0; j < this->intensity; j++)
-          this->selPixelsCount[b][d] += coocurrencesMatrix[d][i][j];
-    // Normalización
-    for (int d = 0; d < 4; d++) {
-      for (int i = 0; i < this->intensity; i++) {
-        for (int j = 0; j < this->intensity; j++) {
-          this->normMatrix[b][d][i][j] = double(double(coocurrencesMatrix[d][i][j]) / this->selPixelsCount[b][d]);
-        }
+  qDebug() << b;
+  // Conteo de píxeles
+  for (int d = 0; d < 4; d++)
+    for (int i = 0; i < this->intensity; i++)
+      for (int j = 0; j < this->intensity; j++)
+        this->pixelsSelectionCount[b][d] += coocurrencesMatrix[d][i][j];
+  // Normalización
+  for (int d = 0; d < 4; d++) {
+    for (int i = 0; i < this->intensity; i++) {
+      for (int j = 0; j < this->intensity; j++) {
+        this->normalizationMatrix[b][d][i][j] = double(double(coocurrencesMatrix[d][i][j]) / this->pixelsSelectionCount[b][d]);
       }
     }
-    this->mayRecalculate = false;
   }
+  this->mayRecalculate = false;
+  this->started = true;
 }
 
 void PNGFile::makeSelection (int x, int y, int w, int h) {
@@ -170,44 +194,49 @@ void PNGFile::makeSelection (int x, int y, int w, int h) {
   this->corner->setY(qMax(y, 0));
   this->selWidth  = w - x;
   this->selHeight = h - y;
-  for (int i = 0; i < 4; i++)
-    this->selPixelsCount[i] = 0;
   mayRecalculate = true;
 }
 
 void PNGFile::applyFilter () {
-  int *** coocMatrix = this->calcCoocurrence(this->corner->x(), this->corner->y(), this->selWidth, this->selHeight);
-  this->calcNormalized(coocMatrix, 0);
+  if (this->mayRecalculate) {
+    int ***coocMatrix = this->calcCoocurrence(this->corner->x(), this->corner->y(), this->selWidth, this->selHeight);
+    this->calcNormalized(coocMatrix, 0);
+  }
   switch (this->actualFilter) {
     case 0:
-      this->filterValue[0][this->actualFilter] = HomogeneizeFilter::apply(this->normMatrix[0], this->actualDirection, this->intensity);
+      this->filterValue[0][this->actualFilter] = HomogeneizeFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
       break;
     case 1:
-      this->filterValue[0][this->actualFilter] = ContrastFilter::apply(this->normMatrix[0], this->actualDirection, this->intensity);
+      this->filterValue[0][this->actualFilter] = ContrastFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
       break;
     case 2:
-      this->filterValue[0][this->actualFilter] = DissimilarityFilter::apply(this->normMatrix[0], this->actualDirection, this->intensity);
+      this->filterValue[0][this->actualFilter] = DissimilarityFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
       break;
     case 3:
-      this->filterValue[0][this->actualFilter] = GLCMMediaFilter::apply(this->normMatrix[0], this->actualDirection, this->intensity);
+      this->filterValue[0][this->actualFilter] = GLCMMediaFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
       break;
     case 4:
-      this->filterValue[0][this->actualFilter] = StandartDeviationFilter::apply(this->normMatrix[0], this->actualDirection, this->intensity);
+      this->filterValue[0][this->actualFilter] = StandartDeviationFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
+      break;
+    case 5:
+      this->filterValue[0][this->actualFilter] = EntropyFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
+      break;
+    case 6:
+      this->filterValue[0][this->actualFilter] = CorrelationFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
+      break;
+    case 7:
+      this->filterValue[0][this->actualFilter] = ASMFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
+      break;
+    case 8:
+      this->filterValue[0][this->actualFilter] = UniformityFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
       break;
   }
-  //else if (actualFilter==5) filterValue = entropyFilter(actualDirection);
-  //else if (actualFilter==6) filterValue = correlationFilter(actualDirection);
-  //else if (actualFilter==7) filterValue = asmFilter(actualDirection);
-  //this->eraseData();
-  // qDebug() << QString::number(filterValue);
+  qDebug() << this->filterValue[0][this->actualFilter];
 }
 
 PNGFile::~PNGFile() {
-  if (this->dataMatrix != 0) {
-    for (int i = 0; i < height; i++) {
-      delete[] this->dataMatrix[i];
-    }
-    delete[] this->dataMatrix;
-    this->dataMatrix = 0;
+  for (int b = 0; b < this->badgeSize; b++) {
+    this->deleteNormalizationMatrix (b);
+    this->deletePixelsSelectionCount (b);
   }
 }

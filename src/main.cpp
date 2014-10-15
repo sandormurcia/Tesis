@@ -8,6 +8,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #include <fstream>
+#include <qmath.h>
 
 using namespace std;
 using namespace cv;

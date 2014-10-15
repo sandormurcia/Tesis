@@ -32,7 +32,10 @@ HEADERS += \
     include/DissimilarityFilter.h \
     include/GLCMMediaFilter.h \
     include/StandartDeviationFilter.h \
-    include/CorrelationFilter.h
+    include/CorrelationFilter.h \
+    include/EntropyFilter.h \
+    include/ASMFilter.h \
+    include/UniformityFilter.h
 SOURCES += \
 #    src/FilePGM.cpp \
 #    src/MainWindow.cpp \

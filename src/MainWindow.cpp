@@ -16,7 +16,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
   this->values[6] = 5;
   this->values[7] = 6;
   this->values[8] = 7;
-  qDebug() << values;
 
   referenceLabel   = new QLabel;
   repositoryLabel = new QLabel;
@@ -55,8 +54,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
   optionDir = new QComboBox();
   optionWSize = new QComboBox();
+  optionPathType = new QComboBox();
 
-  filtrosT << "Homogeneidad" << "Contraste" << "Disimilaridad" << "Media GLCM" << "Desviacion Estandar" << "Entropia" << "Correlacion" << "ASM";
+  filtrosT << "Homogeneidad" << "Contraste" << "Disimilaridad" << "Media GLCM" << "Desviacion Estandar" << "Entropia" << "Correlacion" << "ASM" << "Uniformidad";
 
   QStringList direccionesT;
   direccionesT << "0 grados" << "45 grados" << "90 grados" << "135 grados";
@@ -64,17 +64,22 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
   QStringList wSizes;
   wSizes << "3x3" << "5x5" << "7x7" << "9x9" << "11x11" << "13x13" << "15x15" << "17x17" << "19x19" << "21x21";
 
+  QStringList wPaths;
+  wPaths << "Única caracterización" << "Conjunto de caracteristicas";
+
   optionDir->addItems(direccionesT);
   optionWSize->addItems(wSizes);
+  optionPathType->addItems(wPaths);
 
   mainGrid->addWidget (optionDir);
   mainGrid->addWidget (optionWSize);
+  mainGrid->addWidget (optionPathType);
   for (int f = 0; f < filtrosT.size(); f++) {
     optionFilter.append(new QCheckBox(filtrosT.at(f)));
     mainGrid->addWidget (optionFilter.at(f));
   }
 
-  filtersGroup = new QGroupBox(tr("Direccion, Ventana y Filtro"));
+  filtersGroup = new QGroupBox();
   filtersGroup->setLayout (mainGrid);
 
   filtersPanel = new QDockWidget("Filtros");
@@ -134,7 +139,7 @@ void MainWindow::open()
   QString fileName = QFileDialog::getOpenFileName(this, tr("Abrir archivo"), "../repo/", tr("Imagenes medicas (*.png *.pgm)"));
   if (!fileName.isEmpty() && imageLoaded.load(fileName)) {
     string filePath = fileName.toUtf8().constData();
-    referenceImage = new PNGFile(filePath);
+    this->referenceImage = new PNGFile(filePath);
     referenceLabel->clear();
     setCursor(Qt::ArrowCursor);
     referenceLabel->installEventFilter(this);
@@ -398,12 +403,17 @@ void MainWindow::createActions()
 
   connect(resultList, SIGNAL(itemDoubleClicked(QTreeWidgetItem*,int)), this, SLOT(openRepositoryImage(QTreeWidgetItem*,int)));
 
-  connect(optionDir, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValues(int)));
-  connect(optionWSize, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValues(int)));
+  connect(optionDir, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValuesWithRecalculation(int)));
+  connect(optionWSize, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValuesWithRecalculation(int)));
+  connect(optionPathType, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValues(int)));
 }
 
 void MainWindow::changeFilterValues (int index) {
   this->referenceImage->actualFilter = index;
+}
+
+void MainWindow::changeFilterValuesWithRecalculation (int index) {
+  this->referenceImage->mayRecalculate = true;
 }
 
 void MainWindow::openRepositoryImage(QTreeWidgetItem *item, int column)
@@ -492,6 +502,11 @@ void MainWindow::restrictPoints()
 void MainWindow::processArea()
 {
   cancArea->setEnabled(false);
+  int actualBadgeSize = optionPathType->currentIndex() == 0 ? 1 : 4;
+  if (actualBadgeSize != this->referenceImage->badgeSize || this->referenceImage->started != true) {
+    this->referenceImage->badgeSize = actualBadgeSize;
+    this->referenceImage->startDataPlaceholders ();
+  }
   int minimum = qMin(endDrag.x()-startDrag.x(),(endDrag.y()-startDrag.y()));
   int maxWindowSize = 0;
   if (minimum % 2 == 0)
@@ -503,38 +518,38 @@ void MainWindow::processArea()
     QMessageBox::warning(this, tr("No se puede procesar el area de seleccion"),tr("El area de seleccion actual es demasiado pequena para ser procesada.\nIntente con una un poco mas grande."),QMessageBox::Ok);
     return;
   }
-  qDebug() << optionWSize->currentIndex();
-  referenceImage->actualDirection = optionDir->currentIndex();
-  referenceImage->windowSize = (2 * optionWSize->currentIndex()) + 3;
+  this->referenceImage->actualDirection = optionDir->currentIndex();
+  this->referenceImage->windowSize = (2 * optionWSize->currentIndex()) + 3;
 
-  double epsilon[referenceImage->badgeSize];
-  for(int b = 0; b < referenceImage->badgeSize; b++) {
+  double epsilon[this->referenceImage->badgeSize];
+  for(int b = 0; b < this->referenceImage->badgeSize; b++) {
     epsilon[b] = 0.0;
   }
   int checked = 0;
 
-  if (referenceImage->windowSize<=maxWindowSize) {
+  if (this->referenceImage->windowSize<=maxWindowSize) {
     for (int f = 0; f < filtrosT.size(); f++)
       if (optionFilter.at(f)->isChecked() == true) checked++;
 
     for (int f = 0; f < filtrosT.size(); f++) {
       if (optionFilter.at(f)->isChecked()) {
-        referenceImage->actualFilter = f;
-        referenceImage->applyFilter();
-        for(int b = 0; b < referenceImage->badgeSize; b++) {
+        this->referenceImage->actualFilter = f;
+        qDebug() << "Aplicando " << filtrosT.at (f);
+        this->referenceImage->applyFilter();
+        for(int b = 0; b < this->referenceImage->badgeSize; b++) {
           if (checked > 1)
-            epsilon[b] += pow(referenceImage->filterValue[b][f], 2.0);
+            epsilon[b] += pow(this->referenceImage->filterValue[b][f], 2.0);
           else if (checked > 0)
-            epsilon[b] += referenceImage->filterValue[b][f];
+            epsilon[b] += this->referenceImage->filterValue[b][f];
         }
       }
     }
     for (int f = 0; f < filtrosT.size(); f++) {
-      for(int b = 0; b < referenceImage->badgeSize; b++) {
+      for(int b = 0; b < this->referenceImage->badgeSize; b++) {
         if (checked > 1)
-          epsilon[b] += sqrt(referenceImage->filterValue[b][f]);
+          epsilon[b] += sqrt(this->referenceImage->filterValue[b][f]);
         else if (checked > 0)
-          epsilon[b] += referenceImage->filterValue[b][f];
+          epsilon[b] += this->referenceImage->filterValue[b][f];
       }
     }
 
@@ -574,14 +589,14 @@ void MainWindow::searchInRepository()
     result->clear();
     string filePath = fileName.toUtf8().constData();
     PNGFile *repositoryImage = new PNGFile(filePath);
-    int i = (repositoryImage->width - referenceImage->selWidth) - 1;
+    int i = (repositoryImage->width - this->referenceImage->selWidth) - 1;
     do {
-      int j = (repositoryImage->height - referenceImage->selHeight) - 1;
+      int j = (repositoryImage->height - this->referenceImage->selHeight) - 1;
       do {
         double epsilon = 0.0;
         repositoryImage->actualDirection = optionDir->currentIndex();
         repositoryImage->windowSize = (2 * optionWSize->currentIndex()) + 3;
-        repositoryImage->makeSelection(i, j, (i + referenceImage->selWidth), (j + referenceImage->selHeight));
+        repositoryImage->makeSelection(i, j, (i + this->referenceImage->selWidth), (j + this->referenceImage->selHeight));
 
         // Reemplazo file_->applyFilter();
         for (int f = 0; f < filtrosT.size(); f++) {
@@ -599,19 +614,19 @@ void MainWindow::searchInRepository()
         else if (checked > 0)
           repositoryImage->filterValue = epsilon;
 
-        if (absDiff[image] > fabs(referenceImage->filterValue - repositoryImage->filterValue)) {
-          absDiff[image] = fabs(referenceImage->filterValue - repositoryImage->filterValue);
+        if (absDiff[image] > fabs(this->referenceImage->filterValue - repositoryImage->filterValue)) {
+          absDiff[image] = fabs(this->referenceImage->filterValue - repositoryImage->filterValue);
           coordinates->clear();
           coordinates->operator <<(QString::number(i));
           coordinates->operator <<(QString::number(j));
-          coordinates->operator <<(QString::number(i + referenceImage->selWidth));
-          coordinates->operator <<(QString::number(j + referenceImage->selHeight));
+          coordinates->operator <<(QString::number(i + this->referenceImage->selWidth));
+          coordinates->operator <<(QString::number(j + this->referenceImage->selHeight));
         }
         j--;
       } while (j >= 0);
       i--;
     } while (i >= 0);
-    double percent = double(round(double(absDiff[image] * 100 / referenceImage->filterValue) * 100) / 100);
+    double percent = double(round(double(absDiff[image] * 100 / this->referenceImage->filterValue) * 100) / 100);
     QBrush bgcolor = QBrush(Qt::green);
     QString per_ = QString::number(percent);
     if (percent > 2.0) bgcolor = QBrush(Qt::red);
@@ -624,7 +639,7 @@ void MainWindow::searchInRepository()
     QTreeWidgetItem *item = new QTreeWidgetItem(*result);
     item->setForeground(1,bgcolor);
     items.append(item);
-    qDebug() << fileInfo->fileName().toLocal8Bit().data() << referenceImage->filterValue << repositoryImage->filterValue << absDiff[image];
+    qDebug() << fileInfo->fileName().toLocal8Bit().data() << this->referenceImage->filterValue << repositoryImage->filterValue << absDiff[image];
     repositoryImage->PNGFile::~PNGFile();
   }
 
@@ -632,6 +647,6 @@ void MainWindow::searchInRepository()
   resultList->insertTopLevelItems(0, items);
   resultList->sortByColumn(1,Qt::AscendingOrder);
 
-  resultPanel->setWindowTitle(QString("Filtro Referencia: "+QString::number(referenceImage->filterValue)).toLocal8Bit().data());
+  resultPanel->setWindowTitle(QString("Filtro Referencia: "+QString::number(this->referenceImage->filterValue)).toLocal8Bit().data());
   */
 }
