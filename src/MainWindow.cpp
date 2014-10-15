@@ -136,7 +136,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
 void MainWindow::open()
 {
-  QString fileName = QFileDialog::getOpenFileName(this, tr("Abrir archivo"), "../repo/", tr("Imagenes medicas (*.png *.pgm)"));
+  QString fileName = QFileDialog::getOpenFileName(this, tr("Abrir archivo"), "../", tr("Imagenes medicas (*.png *.pgm)"));
   if (!fileName.isEmpty() && imageLoaded.load(fileName)) {
     string filePath = fileName.toUtf8().constData();
     this->referenceImage = new PNGFile(filePath);
