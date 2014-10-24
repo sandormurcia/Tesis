@@ -23,7 +23,6 @@ QString dats(double a[], int s) {
 }
 
 PNGFile::PNGFile(string file) {
-  qDebug(file.c_str());
   Mat originalMatrix = imread(file);
   // Obtenemos la informacion de las cabeceras del archivo
   this->width  = originalMatrix.cols;
@@ -78,6 +77,8 @@ void PNGFile::initNormalizationMatrix (int b) {
 }
 
 void PNGFile::resetPixelsSelectionCount (int b) {
+  this->pixelsSelectionCount[b] = 0;
+  this->pixelsSelectionCount[b] = new int[4];
   for (int d = 0; d < 4; d++) {
     this->pixelsSelectionCount[b][d] = 0;
   }

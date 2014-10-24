@@ -537,6 +537,10 @@ void MainWindow::processArea()
         }
       }
     }
+    qDebug() << "Valores para imágen de referencia";
+    for (int f = 0; f < filtrosT.size(); f++) {
+      qDebug() << filtrosT.at(f) << epsilon[f];
+    }
     this->searchInRepository(epsilon);
   } else
     QMessageBox::warning(this, tr("No se puede procesar el area de seleccion"),tr("Las dimensiones de la ventana sobrepasan el limite del area de seleccion.\nIntente con una ventana inferior o igual a ").append(QString::number(maxWindowSize)).append("x").append(QString::number(maxWindowSize)),QMessageBox::Ok);
@@ -554,13 +558,10 @@ void MainWindow::searchInRepository(double *referenceValues)
   nameFilter->operator <<("*.png");
 
   QFileInfoList list = dir->entryInfoList(*nameFilter, QDir::Files, QDir::Type|QDir::Name);
-  double *absoluteSimilarity = new double[list.size()];
+  double absoluteSimilarity[list.size()];
   QStringList *coordinates = new QStringList;
   QStringList *result = new QStringList;
   items.clear();
-
-  for (int x = 0; x < list.size(); ++x)
-    absoluteSimilarity[x] = 0;
 
   int checked = 0;
   double epsilon[filtrosT.size()], percent = 0;
@@ -568,11 +569,9 @@ void MainWindow::searchInRepository(double *referenceValues)
     if (optionFilter.at(f)->isChecked() == true) checked++;
 
   double absoluteReference = 0;
-  for(int b = 0; b < this->referenceImage->badgeSize; b++) {
-    for (int f = 0; f < filtrosT.size(); f++) {
-      if (optionFilter.at(f)->isChecked()) {
-        absoluteReference += (referenceValues[f] / checked);
-      }
+  for (int f = 0; f < filtrosT.size(); f++) {
+    if (optionFilter.at(f)->isChecked()) {
+      absoluteReference += (referenceValues[f] / checked);
     }
   }
 
@@ -583,7 +582,10 @@ void MainWindow::searchInRepository(double *referenceValues)
     result->clear();
     string filePath = fileName.toUtf8().constData();
     repositoryImage = new PNGFile(filePath);
+    repositoryImage->badgeSize = this->referenceImage->badgeSize;
+    repositoryImage->startDataPlaceholders ();
     int i = (repositoryImage->width - this->referenceImage->selWidth) - 1;
+    absoluteSimilarity[image] = 0;
     do {
       int j = (repositoryImage->height - this->referenceImage->selHeight) - 1;
       do {
@@ -605,25 +607,30 @@ void MainWindow::searchInRepository(double *referenceValues)
           }
         }
 
-        for(int b = 0; b < repositoryImage->badgeSize; b++) {
-          for (int f = 0; f < filtrosT.size(); f++) {
-            if (optionFilter.at(f)->isChecked() == true) {
-              absoluteSimilarity[image] += (epsilon[f] / checked);
-            }
+        double actualSimilarity = 0;
+        for (int f = 0; f < filtrosT.size(); f++) {
+          if (optionFilter.at(f)->isChecked() == true) {
+            actualSimilarity += ((epsilon[f] * 100) / referenceValues[f]);
           }
         }
-        coordinates->clear();
-        coordinates->operator <<(QString::number(i));
-        coordinates->operator <<(QString::number(j));
-        coordinates->operator <<(QString::number(i + this->referenceImage->selWidth));
-        coordinates->operator <<(QString::number(j + this->referenceImage->selHeight));
+        actualSimilarity = actualSimilarity / checked;
+        if (actualSimilarity > absoluteSimilarity[image]) {
+          absoluteSimilarity[image] = actualSimilarity;
+          coordinates->clear();
+          coordinates->operator <<(QString::number(i));
+          coordinates->operator <<(QString::number(j));
+          coordinates->operator <<(QString::number(i + this->referenceImage->selWidth));
+          coordinates->operator <<(QString::number(j + this->referenceImage->selHeight));
+        }
         j--;
       } while (j >= 0);
       i--;
     } while (i >= 0);
-    QBrush bgcolor = QBrush(Qt::green);
-    QString per_ = QString::number(double(round(absoluteSimilarity[image] * 100)) / 100);
-    if (percent > 80) bgcolor = QBrush(Qt::red);
+    QBrush bgcolor = QBrush(Qt::darkGray);
+    QString per_ = QString::number(100 - double(round(absoluteSimilarity[image] * 100)) / 100);
+    if (percent > 60) bgcolor = QBrush(Qt::red);
+    if (percent > 80) bgcolor = QBrush(Qt::blue);
+    if (percent > 90) bgcolor = QBrush(Qt::green);
     result->operator <<(fileInfo->fileName());
     result->operator <<(per_);
     result->operator <<(coordinates->at(0));
