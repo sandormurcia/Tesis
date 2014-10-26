@@ -579,15 +579,16 @@ void MainWindow::searchInRepository(double *referenceValues)
   for (int image = 0; image < list.size(); ++image) {
     QFileInfo *fileInfo = new QFileInfo(list.at(image));
     QString fileName = fileInfo->absolutePath().append("/").append(fileInfo->fileName());
+    qDebug() << "Archivo" << fileName;
     result->clear();
     string filePath = fileName.toUtf8().constData();
     repositoryImage = new PNGFile(filePath);
     repositoryImage->badgeSize = this->referenceImage->badgeSize;
     repositoryImage->startDataPlaceholders ();
-    int i = (repositoryImage->width - this->referenceImage->selWidth) - 1;
+    int i = (repositoryImage->height - this->referenceImage->selHeight) - 1;
     absoluteSimilarity[image] = 0;
     do {
-      int j = (repositoryImage->height - this->referenceImage->selHeight) - 1;
+      int j = (repositoryImage->width - this->referenceImage->selWidth) - 1;
       do {
         for (int f = 0; f < filtrosT.size(); f++)
           epsilon[f] = 0;
@@ -610,7 +611,7 @@ void MainWindow::searchInRepository(double *referenceValues)
         double actualSimilarity = 0;
         for (int f = 0; f < filtrosT.size(); f++) {
           if (optionFilter.at(f)->isChecked() == true) {
-            actualSimilarity += ((epsilon[f] * 100) / referenceValues[f]);
+            actualSimilarity += ((100 - ((qAbs(referenceValues[f] - epsilon[f]) * 100) / referenceValues[f])));
           }
         }
         actualSimilarity = actualSimilarity / checked;
@@ -624,13 +625,14 @@ void MainWindow::searchInRepository(double *referenceValues)
         }
         j--;
       } while (j >= 0);
+      qDebug() << "Fila" << i;
       i--;
     } while (i >= 0);
-    QBrush bgcolor = QBrush(Qt::darkGray);
+    QBrush bgcolor = QBrush(Qt::green);
     QString per_ = QString::number(100 - double(round(absoluteSimilarity[image] * 100)) / 100);
-    if (percent > 60) bgcolor = QBrush(Qt::red);
-    if (percent > 80) bgcolor = QBrush(Qt::blue);
-    if (percent > 90) bgcolor = QBrush(Qt::green);
+    if (percent > 25) bgcolor = QBrush(Qt::blue);
+    if (percent > 40) bgcolor = QBrush(Qt::red);
+    if (percent > 50) bgcolor = QBrush(Qt::darkGray);
     result->operator <<(fileInfo->fileName());
     result->operator <<(per_);
     result->operator <<(coordinates->at(0));
@@ -640,7 +642,7 @@ void MainWindow::searchInRepository(double *referenceValues)
     QTreeWidgetItem *item = new QTreeWidgetItem(*result);
     item->setForeground(1,bgcolor);
     items.append(item);
-    repositoryImage->PNGFile::~PNGFile();
+    repositoryImage->~PNGFile();
   }
 
   resultList->clear();

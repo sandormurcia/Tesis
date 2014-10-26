@@ -44,6 +44,7 @@ PNGFile::PNGFile(string file) {
   this->intensity = 256;
   this->badgeSize = 1;
   this->started = false;
+  originalMatrix.~Mat();
 }
 
 void PNGFile::startDataPlaceholders () {
@@ -147,9 +148,11 @@ int *** PNGFile::calcCoocurrence(int x, int y, int w, int h) {
   for (d = 0; d < 4; d++) {
     for (int i = (x + wSize); i < ((x + w) - (wSize)); i++) {
       for (int j = (y + wSize); j < ((y + h) - (wSize)); j++) {
-        int actual = this->dataMatrix[i][j];
+        int actual = 0;
+        near = 0;
+        actual = this->dataMatrix[i][j];
         near = this->dataMatrix[(i + (directions[d][0] * wSize))][(j + (directions[d][1] * wSize))];
-        matrix[d][actual][near]++;
+        if ((actual < this->intensity) && (near < this->intensity) && (actual >= 0) && (near >= 0)) matrix[d][actual][near]++;
       }
     }
   }
@@ -190,6 +193,16 @@ void PNGFile::calcNormalized(int ***coocurrencesMatrix, int b) {
   }
   this->mayRecalculate = false;
   this->started = true;
+  if (coocurrencesMatrix != 0) {
+    for (int d = 0; d < 4; d++) {
+      for (int i = 0; i < intensity; i++) {
+        delete[] coocurrencesMatrix[d][i];
+      }
+      delete[] coocurrencesMatrix[d];
+    }
+    delete[] coocurrencesMatrix;
+    coocurrencesMatrix = 0;
+  }
 }
 
 void PNGFile::makeSelection (int x, int y, int w, int h) {
@@ -241,6 +254,8 @@ PNGFile::~PNGFile() {
     this->deleteNormalizationMatrix (b);
     this->deletePixelsSelectionCount (b);
   }
+  delete[] this->normalizationMatrix;
+  delete[] this->pixelsSelectionCount;
   try {
     if (this->dataMatrix != 0) {
       for (int i = 0; i < this->width; i++) {
