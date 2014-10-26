@@ -577,6 +577,7 @@ void MainWindow::searchInRepository(double *referenceValues)
 
   PNGFile *repositoryImage;
   for (int image = 0; image < list.size(); ++image) {
+    bool found = false;
     QFileInfo *fileInfo = new QFileInfo(list.at(image));
     QString fileName = fileInfo->absolutePath().append("/").append(fileInfo->fileName());
     qDebug() << "Archivo" << fileName;
@@ -623,11 +624,14 @@ void MainWindow::searchInRepository(double *referenceValues)
           coordinates->operator <<(QString::number(i + this->referenceImage->selWidth));
           coordinates->operator <<(QString::number(j + this->referenceImage->selHeight));
         }
+        if (actualSimilarity == 100) {
+          found = true;
+        }
         j--;
-      } while (j >= 0);
+      } while (j >= 0 && !found);
       qDebug() << "Fila" << i;
       i--;
-    } while (i >= 0);
+    } while (i >= 0 && !found);
     QBrush bgcolor = QBrush(Qt::green);
     QString per_ = QString::number(100 - double(round(absoluteSimilarity[image] * 100)) / 100);
     if (percent > 25) bgcolor = QBrush(Qt::blue);
