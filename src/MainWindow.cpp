@@ -642,16 +642,12 @@ void MainWindow::searchInRepository(double *referenceValues)
           j--;
         } else {
           double coeficient = 1 - (actualSimilarity / 100);
-          int initialOffset = int(round(coeficient * this->referenceImage->selWidth));
-          int offset = j - initialOffset;
-          if (offset < 1) {
-            j -= 1;
-          } else {
-            j -= offset;
-          }
+          int initialOffset = int(round((coeficient * this->referenceImage->selWidth) / 2));
+          int offset = max(1, min(initialOffset, j - 1));
+          j -= offset;
         }
       } while (j >= 0 && !found);
-      qDebug() << "Fila" << i << ":" << "Similaridad" << absoluteSimilarity[image] << "% (" << (currentTime.elapsed() / 1000) << "segundos, Total " << (time.elapsed() / 1000) << "segundos ), Busqueda " << exhaustiveT.at(optionExhaustive->currentIndex());
+      qDebug() << "Fila" << i << ":" << "Similaridad" << absoluteSimilarity[image] << "% (" << double(currentTime.elapsed() / 1000.0) << "segundos, Total " << double(time.elapsed() / 1000.0) << "segundos ), Busqueda " << exhaustiveT.at(optionExhaustive->currentIndex());
       i--;
     } while (i >= 0 && !found);
     int difference = time.elapsed();
@@ -670,7 +666,7 @@ void MainWindow::searchInRepository(double *referenceValues)
     item->setForeground(1,bgcolor);
     items.append(item);
     repositoryImage->~PNGFile();
-    qDebug() << "Finalizado archivo:" << fileName << "(" << difference << "milisegundos)";
+    qDebug() << "Finalizado archivo:" << fileName << "(" << double(difference/1000.0) << "milisegundos)";
   }
 
   resultList->clear();
