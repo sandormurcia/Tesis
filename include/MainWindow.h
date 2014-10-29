@@ -36,6 +36,7 @@ class MainWindow : public QMainWindow
 public:
   explicit MainWindow(QWidget *parent = 0);
   QStringList filtrosT;
+  QStringList exhaustiveT;
 
 private slots:
   void open();
@@ -80,6 +81,7 @@ private:
   QGroupBox *filtersGroup;
   QList<QCheckBox *> optionFilter;
   QComboBox *optionDir;
+  QComboBox *optionExhaustive;
   QComboBox *optionWSize;
   QComboBox *optionPathType;
 

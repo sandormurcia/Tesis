@@ -55,6 +55,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
   optionDir = new QComboBox();
   optionWSize = new QComboBox();
   optionPathType = new QComboBox();
+  optionExhaustive = new QComboBox();
 
   filtrosT << "Homogeneidad" << "Contraste" << "Disimilaridad" << "Media GLCM" << "Desviacion Estandar" << "Entropia" << "Correlacion" << "ASM" << "Uniformidad";
 
@@ -67,13 +68,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
   QStringList wPaths;
   wPaths << "Única caracterización" << "Conjunto de caracteristicas";
 
+  exhaustiveT << "Exhaustiva" << "No exhaustiva";
+
   optionDir->addItems(direccionesT);
   optionWSize->addItems(wSizes);
   optionPathType->addItems(wPaths);
+  optionExhaustive->addItems(exhaustiveT);
 
   mainGrid->addWidget (optionDir);
   mainGrid->addWidget (optionWSize);
   mainGrid->addWidget (optionPathType);
+  mainGrid->addWidget (optionExhaustive);
   for (int f = 0; f < filtrosT.size(); f++) {
     optionFilter.append(new QCheckBox(filtrosT.at(f)));
     mainGrid->addWidget (optionFilter.at(f));
@@ -406,6 +411,7 @@ void MainWindow::createActions()
   connect(optionDir, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValuesWithRecalculation(int)));
   connect(optionWSize, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValuesWithRecalculation(int)));
   connect(optionPathType, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValues(int)));
+  connect(optionExhaustive, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValues(int)));
 }
 
 void MainWindow::changeFilterValues (int index) {
@@ -589,11 +595,12 @@ void MainWindow::searchInRepository(double *referenceValues)
     repositoryImage = new PNGFile(filePath);
     repositoryImage->badgeSize = this->referenceImage->badgeSize;
     repositoryImage->startDataPlaceholders ();
-    double progress = 0.0;
     int i = (repositoryImage->height - this->referenceImage->selHeight) - 1;
     absoluteSimilarity[image] = 0;
     do {
       int j = (repositoryImage->width - this->referenceImage->selWidth) - 1;
+      QTime currentTime;
+      currentTime.start();
       do {
         for (int f = 0; f < filtrosT.size(); f++)
           epsilon[f] = 0;
@@ -631,9 +638,20 @@ void MainWindow::searchInRepository(double *referenceValues)
         if (actualSimilarity == 100) {
           found = true;
         }
-        j--;
+        if (optionExhaustive->currentIndex() == 0) {
+          j--;
+        } else {
+          double coeficient = 1 - (actualSimilarity / 100);
+          int initialOffset = int(round(coeficient * this->referenceImage->selWidth));
+          int offset = j - initialOffset;
+          if (offset < 1) {
+            j -= 1;
+          } else {
+            j -= offset;
+          }
+        }
       } while (j >= 0 && !found);
-      qDebug() << "Fila" << i << ":" << "Similaridad" << absoluteSimilarity[image] << "% (" << time.elapsed() << "milisegundos)";
+      qDebug() << "Fila" << i << ":" << "Similaridad" << absoluteSimilarity[image] << "% (" << (currentTime.elapsed() / 1000) << "segundos, Total " << (time.elapsed() / 1000) << "segundos ), Busqueda " << exhaustiveT.at(optionExhaustive->currentIndex());
       i--;
     } while (i >= 0 && !found);
     int difference = time.elapsed();
