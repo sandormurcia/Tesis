@@ -2,3 +2,4 @@ cache/*
 repo/*
 build/*
 .gitignore
+src.pro.user*

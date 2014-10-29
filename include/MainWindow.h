@@ -5,6 +5,7 @@
 #include <QMainWindow>
 #include <QApplication>
 #include <QDebug>
+#include <QTime>
 #include <QLabel>
 #include <QScrollArea>
 #include <QDockWidget>

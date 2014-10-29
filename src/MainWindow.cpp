@@ -436,7 +436,6 @@ void MainWindow::openRepositoryImage(QTreeWidgetItem *item, int column)
 
   this->repositoryViewer->show();
   this->repositoryViewer->setWindowTitle(item->text(0).append(" con ").append(item->text(1).append("% de Diferencia de la muestra")));
-  qDebug() << item->text(2) << item->text(3) << item->text(4) << item->text(5);
   this->repositoryViewer->setFocus();
 }
 
@@ -537,9 +536,11 @@ void MainWindow::processArea()
         }
       }
     }
-    qDebug() << "Valores para imágen de referencia";
+    qDebug() << "Valores para imágen de referencia:";
     for (int f = 0; f < filtrosT.size(); f++) {
-      qDebug() << filtrosT.at(f) << epsilon[f];
+      if (optionFilter.at(f)->isChecked()) {
+        qDebug() << filtrosT.at(f) << ":" << epsilon[f];
+      }
     }
     this->searchInRepository(epsilon);
   } else
@@ -580,12 +581,15 @@ void MainWindow::searchInRepository(double *referenceValues)
     bool found = false;
     QFileInfo *fileInfo = new QFileInfo(list.at(image));
     QString fileName = fileInfo->absolutePath().append("/").append(fileInfo->fileName());
-    qDebug() << "Archivo" << fileName;
+    qDebug() << "Cargando archivo" << fileName;
     result->clear();
+    QTime time;
+    time.start();
     string filePath = fileName.toUtf8().constData();
     repositoryImage = new PNGFile(filePath);
     repositoryImage->badgeSize = this->referenceImage->badgeSize;
     repositoryImage->startDataPlaceholders ();
+    double progress = 0.0;
     int i = (repositoryImage->height - this->referenceImage->selHeight) - 1;
     absoluteSimilarity[image] = 0;
     do {
@@ -629,9 +633,10 @@ void MainWindow::searchInRepository(double *referenceValues)
         }
         j--;
       } while (j >= 0 && !found);
-      qDebug() << "Fila" << i;
+      qDebug() << "Fila" << i << ":" << "Similaridad" << absoluteSimilarity[image] << "% (" << time.elapsed() << "milisegundos)";
       i--;
     } while (i >= 0 && !found);
+    int difference = time.elapsed();
     QBrush bgcolor = QBrush(Qt::green);
     QString per_ = QString::number(100 - double(round(absoluteSimilarity[image] * 100)) / 100);
     if (percent > 25) bgcolor = QBrush(Qt::blue);
@@ -647,6 +652,7 @@ void MainWindow::searchInRepository(double *referenceValues)
     item->setForeground(1,bgcolor);
     items.append(item);
     repositoryImage->~PNGFile();
+    qDebug() << "Finalizado archivo:" << fileName << "(" << difference << "milisegundos)";
   }
 
   resultList->clear();
