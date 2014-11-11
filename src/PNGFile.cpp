@@ -28,10 +28,13 @@ PNGFile::PNGFile(string file) {
   this->width  = originalMatrix.cols;
   this->height = originalMatrix.rows;
   int channels = originalMatrix.channels();
+  this->minWidthHeight = min(this->width, this->height);
+  this->offsetWidth = round((this->width - this->minWidthHeight) / 2);
+  this->offsetHeight = round((this->height - this->minWidthHeight) / 2);
   this->dataMatrix = new int*[this->width];
-  for (int i = 0; i < this->width; i++) {
+  for (int i = 0; i < (this->width - 0); i++) {
     this->dataMatrix[i] = new int[this->height];
-    for (int j = 0; j < this->height; j++)
+    for (int j = 0; j < (this->height - 0); j++)
       this->dataMatrix[i][j] = (int)originalMatrix.data[(j * this->width * channels) + ((i * channels) + qMax(0, 1))];
   }
   this->mayRecalculate = true;
@@ -117,7 +120,7 @@ void PNGFile::deletePixelsSelectionCount (int b) {
 
 int *** PNGFile::calcCoocurrence(int x, int y, int w, int h) {
   int directions[4][2] = {{1,0},{1,1},{0,1},{-1,1}};
-  int wSize = int(floor(this->windowSize / 2));
+  int wSize = int((this->windowSize - 1) / 2);
 
   int ***matrix = 0;
   int ***coocurrencesMatrix = 0;
@@ -144,15 +147,18 @@ int *** PNGFile::calcCoocurrence(int x, int y, int w, int h) {
   } while (d >= 0);
 
   // Calculamos Matriz de Co-ocurrencia para las direcciones (0, 45, 90, 135)
-  int near = 0;
   for (d = 0; d < 4; d++) {
-    for (int i = (x + wSize); i < ((x + w) - (wSize)); i++) {
-      for (int j = (y + wSize); j < ((y + h) - (wSize)); j++) {
-        int actual = 0;
-        near = 0;
-        actual = this->dataMatrix[i][j];
-        near = this->dataMatrix[(i + (directions[d][0] * wSize))][(j + (directions[d][1] * wSize))];
-        if ((actual < this->intensity) && (near < this->intensity) && (actual >= 0) && (near >= 0)) matrix[d][actual][near]++;
+    for (int j = y; j < (y + h - wSize); j++) {
+      for (int i = x; i < (x + w - wSize); i++) {
+        int referencePixel = 0;
+        int rI = i + wSize;
+        int rJ = j + wSize;
+        int nearPixel = 0;
+        int nI = rI + (directions[d][0] * wSize);
+        int nJ = rJ + (directions[d][1] * wSize);
+        referencePixel = this->dataMatrix[rI][rJ];
+        nearPixel = this->dataMatrix[nI][nJ];
+        matrix[d][referencePixel][nearPixel]++;
       }
     }
   }

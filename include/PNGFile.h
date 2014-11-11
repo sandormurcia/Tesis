@@ -55,6 +55,9 @@ class PNGFile
     int selWidth;
     int selHeight;
     int windowSize;
+    int minWidthHeight;
+    int offsetWidth;
+    int offsetHeight;
     int **pixelsSelectionCount;
     double **filterValue;
     bool mayRecalculate;

@@ -305,6 +305,7 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
       painter.drawText(20,20,optionWSize->currentText());
       painter.end();
 
+      qDebug() << startDrag.x() << startDrag.y() << endDrag.x() << endDrag.y();
       this->referenceImage->makeSelection(startDrag.x(), startDrag.y(), endDrag.x(), endDrag.y());
       statusBar()->showMessage("Seleccionado: "+QString::number(maxFromSel)+" x "+QString::number(maxFromSel));
       dragging = false;
@@ -582,6 +583,8 @@ void MainWindow::searchInRepository(double *referenceValues)
     }
   }
 
+  QTime absoluteTime;
+  absoluteTime.start();
   PNGFile *repositoryImage;
   for (int image = 0; image < list.size(); ++image) {
     bool found = false;
@@ -595,10 +598,10 @@ void MainWindow::searchInRepository(double *referenceValues)
     repositoryImage = new PNGFile(filePath);
     repositoryImage->badgeSize = this->referenceImage->badgeSize;
     repositoryImage->startDataPlaceholders ();
-    int i = (repositoryImage->height - this->referenceImage->selHeight) - 1;
+    int j = repositoryImage->offsetHeight;
     absoluteSimilarity[image] = 0;
     do {
-      int j = (repositoryImage->width - this->referenceImage->selWidth) - 1;
+      int i = repositoryImage->offsetWidth;
       QTime currentTime;
       currentTime.start();
       do {
@@ -626,7 +629,7 @@ void MainWindow::searchInRepository(double *referenceValues)
             actualSimilarity += ((100 - ((qAbs(referenceValues[f] - epsilon[f]) * 100) / referenceValues[f])));
           }
         }
-        actualSimilarity = actualSimilarity / checked;
+        actualSimilarity = (round((actualSimilarity / checked) * 1000) / 1000);
         if (actualSimilarity > absoluteSimilarity[image]) {
           absoluteSimilarity[image] = actualSimilarity;
           coordinates->clear();
@@ -639,17 +642,19 @@ void MainWindow::searchInRepository(double *referenceValues)
           found = true;
         }
         if (optionExhaustive->currentIndex() == 0) {
-          j--;
+          i++;
         } else {
           double coeficient = 1 - (actualSimilarity / 100);
-          int initialOffset = int(round((coeficient * this->referenceImage->selWidth) / 2));
-          int offset = max(1, min(initialOffset, j - 1));
-          j -= offset;
+          int offset = 1;
+          if (coeficient > 0.1) {
+            int initialOffset = int(round((coeficient * this->referenceImage->selWidth) / 2));
+            offset = max(1, min(initialOffset, i - 1));
+          }
+          i += offset;
         }
-      } while (j >= 0 && !found);
-      qDebug() << "Fila" << i << ":" << "Similaridad" << absoluteSimilarity[image] << "% (" << double(currentTime.elapsed() / 1000.0) << "segundos, Total " << double(time.elapsed() / 1000.0) << "segundos ), Busqueda " << exhaustiveT.at(optionExhaustive->currentIndex());
-      i--;
-    } while (i >= 0 && !found);
+      } while (i < (repositoryImage->width - repositoryImage->offsetWidth - repositoryImage->selWidth - int((repositoryImage->windowSize - 1) / 2)) && !found);
+      j++;
+    } while (j < (repositoryImage->height - repositoryImage->offsetHeight - repositoryImage->selHeight - int((repositoryImage->windowSize - 1) / 2)) && !found);
     int difference = time.elapsed();
     QBrush bgcolor = QBrush(Qt::green);
     QString per_ = QString::number(100 - double(round(absoluteSimilarity[image] * 100)) / 100);
@@ -666,8 +671,9 @@ void MainWindow::searchInRepository(double *referenceValues)
     item->setForeground(1,bgcolor);
     items.append(item);
     repositoryImage->~PNGFile();
-    qDebug() << "Finalizado archivo:" << fileName << "(" << double(difference/1000.0) << "milisegundos)";
+    qDebug() << "Finalizado archivo:" << fileName << "(" << double(difference / 1000.0) << "milisegundos )";
   }
+  qDebug() << "Finalizado repositorio: (" << double(absoluteTime.elapsed() / 1000.0) << "milisegundos )";
 
   resultList->clear();
   resultList->insertTopLevelItems(0, items);
