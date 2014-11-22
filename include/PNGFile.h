@@ -72,7 +72,7 @@ class PNGFile
     void makeSelection (int x, int y, int w, int h);
     void applyFilter (int actualFilter);
     void createMatrix (int w, int h, QFile *file);
-    int *** calcCoocurrence (int x, int y, int w, int h);
+    int *** calcCoocurrence (int x, int y, int w, int h, int b);
     void calcNormalized (int ***coocurrencesMatrix, int b);
     void startDataPlaceholders ();
     void initNormalizationMatrix (int b);

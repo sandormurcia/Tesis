@@ -411,14 +411,15 @@ void MainWindow::createActions()
 
   connect(optionDir, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValuesWithRecalculation(int)));
   connect(optionWSize, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValuesWithRecalculation(int)));
-  connect(optionPathType, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValues(int)));
   connect(optionExhaustive, SIGNAL(currentIndexChanged(int)), this, SLOT(changeFilterValues(int)));
+  connect(optionPathType, SIGNAL(changeFilterValuesWithRecalculation(int)), this, SLOT(changeFilterValuesWithRecalculation(int)));
 }
 
 void MainWindow::changeFilterValues (int index) {
 }
 
 void MainWindow::changeFilterValuesWithRecalculation (int index) {
+  this->referenceImage->pathType = optionPathType->currentIndex();
   this->referenceImage->mayRecalculate = true;
 }
 

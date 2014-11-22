@@ -118,8 +118,15 @@ void PNGFile::deletePixelsSelectionCount (int b) {
   }
 }
 
-int *** PNGFile::calcCoocurrence(int x, int y, int w, int h) {
-  int directions[4][2] = {{1,0},{1,1},{0,1},{-1,1}};
+int *** PNGFile::calcCoocurrence(int x, int y, int w, int h, int b) {
+  int directionsA[4][2] = {{1,0},{1,1},{0,1},{-1,1}};
+  int directionsB[4][2] = {{-1,1},{1,1},{-1,-1},{1,-1}};
+  int directions[4][2];
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 2; j++) {
+      directions[i][j] = (this->pathType == 0) ? directionsA[i][j] : directionsB[i][j];
+    }
+  }
   int wSize = int((this->windowSize - 1) / 2);
 
   int ***matrix = 0;
@@ -127,7 +134,11 @@ int *** PNGFile::calcCoocurrence(int x, int y, int w, int h) {
 
   matrix = new int **[4];
   coocurrencesMatrix = new int **[4];
-  int d = 3;
+  int totalDirections = 4;
+  if (this->pathType == 1) {
+    totalDirections = 1;
+  }
+  int d = totalDirections - 1;
   do {
     matrix[d] = new int *[this->intensity];
     coocurrencesMatrix[d] = new int *[this->intensity];
@@ -147,7 +158,7 @@ int *** PNGFile::calcCoocurrence(int x, int y, int w, int h) {
   } while (d >= 0);
 
   // Calculamos Matriz de Co-ocurrencia para las direcciones (0, 45, 90, 135)
-  for (d = 0; d < 4; d++) {
+  for (d = 0; d < totalDirections; d++) {
     for (int j = y; j < (y + h - wSize); j++) {
       for (int i = x; i < (x + w - wSize); i++) {
         int referencePixel = 0;
@@ -165,13 +176,13 @@ int *** PNGFile::calcCoocurrence(int x, int y, int w, int h) {
 
   // Se traspone y se suma con las otras direcciones (180, 225, 270, 315)
 
-  for (d = 0; d < 4; d++)
+  for (d = 0; d < totalDirections; d++)
     for (int i = 0; i < this->intensity; i++)
       for (int j = 0; j < this->intensity; j++)
         coocurrencesMatrix[d][j][i] = matrix[d][i][j] + matrix[d][j][i];
 
   if (matrix != 0) {
-    for (d = 0; d < 4; d++) {
+    for (d = 0; d < totalDirections; d++) {
       for (int i = 0; i < intensity; i++)
         delete[] matrix[d][i];
       delete[] matrix[d];
@@ -220,38 +231,43 @@ void PNGFile::makeSelection (int x, int y, int w, int h) {
 }
 
 void PNGFile::applyFilter (int actualFilter) {
+  int badgesCount = this->pathType == 0 ? 1 : 4;
   if (this->mayRecalculate) {
-    int ***coocMatrix = this->calcCoocurrence(this->corner->x(), this->corner->y(), this->selWidth, this->selHeight);
-    this->calcNormalized(coocMatrix, 0);
+    for (int b = 0; b < badgesCount; b++) {
+      int ***coocMatrix = this->calcCoocurrence(this->corner->x(), this->corner->y(), this->selWidth, this->selHeight, b);
+      this->calcNormalized(coocMatrix, b);
+    }
   }
-  switch (actualFilter) {
-    case 0:
-      this->filterValue[0][actualFilter] = HomogeneizeFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
-      break;
-    case 1:
-      this->filterValue[0][actualFilter] = ContrastFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
-      break;
-    case 2:
-      this->filterValue[0][actualFilter] = DissimilarityFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
-      break;
-    case 3:
-      this->filterValue[0][actualFilter] = GLCMMediaFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
-      break;
-    case 4:
-      this->filterValue[0][actualFilter] = StandartDeviationFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
-      break;
-    case 5:
-      this->filterValue[0][actualFilter] = EntropyFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
-      break;
-    case 6:
-      this->filterValue[0][actualFilter] = CorrelationFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
-      break;
-    case 7:
-      this->filterValue[0][actualFilter] = ASMFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
-      break;
-    case 8:
-      this->filterValue[0][actualFilter] = UniformityFilter::apply(this->normalizationMatrix[0], this->actualDirection, this->intensity);
-      break;
+  for (int b = 0; b < badgesCount; b++) {
+    switch (actualFilter) {
+      case 0:
+        this->filterValue[b][actualFilter] = HomogeneizeFilter::apply(this->normalizationMatrix[b], this->actualDirection, this->intensity);
+        break;
+      case 1:
+        this->filterValue[b][actualFilter] = ContrastFilter::apply(this->normalizationMatrix[b], this->actualDirection, this->intensity);
+        break;
+      case 2:
+        this->filterValue[b][actualFilter] = DissimilarityFilter::apply(this->normalizationMatrix[b], this->actualDirection, this->intensity);
+        break;
+      case 3:
+        this->filterValue[b][actualFilter] = GLCMMediaFilter::apply(this->normalizationMatrix[b], this->actualDirection, this->intensity);
+        break;
+      case 4:
+        this->filterValue[b][actualFilter] = StandartDeviationFilter::apply(this->normalizationMatrix[b], this->actualDirection, this->intensity);
+        break;
+      case 5:
+        this->filterValue[b][actualFilter] = EntropyFilter::apply(this->normalizationMatrix[b], this->actualDirection, this->intensity);
+        break;
+      case 6:
+        this->filterValue[b][actualFilter] = CorrelationFilter::apply(this->normalizationMatrix[b], this->actualDirection, this->intensity);
+        break;
+      case 7:
+        this->filterValue[b][actualFilter] = ASMFilter::apply(this->normalizationMatrix[b], this->actualDirection, this->intensity);
+        break;
+      case 8:
+        this->filterValue[b][actualFilter] = UniformityFilter::apply(this->normalizationMatrix[b], this->actualDirection, this->intensity);
+        break;
+    }
   }
 }
 
