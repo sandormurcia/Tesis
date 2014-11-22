@@ -305,8 +305,8 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
       painter.drawText(20,20,optionWSize->currentText());
       painter.end();
 
-      qDebug() << startDrag.x() << startDrag.y() << endDrag.x() << endDrag.y();
       this->referenceImage->makeSelection(startDrag.x(), startDrag.y(), endDrag.x(), endDrag.y());
+      this->referenceImage->pathType = this->optionPathType->currentIndex();
       statusBar()->showMessage("Seleccionado: "+QString::number(maxFromSel)+" x "+QString::number(maxFromSel));
       dragging = false;
 
@@ -598,6 +598,7 @@ void MainWindow::searchInRepository(double *referenceValues)
     string filePath = fileName.toUtf8().constData();
     repositoryImage = new PNGFile(filePath);
     repositoryImage->badgeSize = this->referenceImage->badgeSize;
+    repositoryImage->pathType = this->optionPathType->currentIndex();
     repositoryImage->startDataPlaceholders ();
     int j = repositoryImage->offsetHeight;
     absoluteSimilarity[image] = 0;
