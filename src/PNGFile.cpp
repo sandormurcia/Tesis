@@ -150,7 +150,6 @@ int *** PNGFile::calcCoocurrence(int x, int y, int w, int h, int b) {
     } while (i >= 0);
     d--;
   } while (d >= 0);
-
   // Calculamos Matriz de Co-ocurrencia para las direcciones (0, 45, 90, 135)
   for (d = 0; d < totalDirections; d++) {
     for (int j = y; j < (y + h - wSize); j++) {
@@ -166,7 +165,7 @@ int *** PNGFile::calcCoocurrence(int x, int y, int w, int h, int b) {
           nI = rI + (directionsA[d][0] * wSize);
           nJ = rJ + (directionsA[d][1] * wSize);
         } else {
-          // Corrigiendo datos espaciales:
+          //  Datos espaciales:
           // x x v
           // x x x
           // r x x

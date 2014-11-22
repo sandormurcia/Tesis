@@ -526,6 +526,7 @@ void MainWindow::processArea()
   }
   this->referenceImage->actualDirection = optionDir->currentIndex();
   this->referenceImage->windowSize = (2 * optionWSize->currentIndex()) + 3;
+  this->referenceImage->pathType = optionPathType->currentIndex();
 
   double epsilon[filtrosT.size()];
   for (int f = 0; f < filtrosT.size(); f++)
